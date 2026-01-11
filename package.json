@@ -1,5 +1,5 @@
 {
-  "name": "ffmpeg-textoverlay",
+  "name": "ffmpeg-textoverlay-random",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
