@@ -20,6 +20,96 @@ const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ssm-renders-8822';
 const ffmpegPath = process.env.FFMPEG_PATH || ffmpegInstaller.path || ffmpegStatic;
 
+const TEXT_STYLES = [
+  {
+    name: 'quiet_center_reveal',
+    fontsize: 36,
+    kerning: 2,
+    shadow: 'shadowx=2:shadowy=2:shadowcolor=black@0.4',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2',
+    fontcolor: 'white'
+  },
+  {
+    name: 'lower_third_fact',
+    fontsize: 34,
+    kerning: 1,
+    border: 'borderw=3:bordercolor=black@0.8',
+    x: '(w-text_w)/2',
+    y: 'h*0.72'
+  },
+  {
+    name: 'internal_shift_up',
+    fontsize: 36,
+    kerning: 2,
+    shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.5',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2 + 50'
+  },
+  {
+    name: 'freeze_response',
+    fontsize: 38,
+    kerning: 1,
+    shadow: 'shadowx=4:shadowy=4:shadowcolor=black@0.6',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2'
+  },
+  {
+    name: 'split_reality_top',
+    fontsize: 34,
+    kerning: 1,
+    border: 'borderw=2:bordercolor=black@0.7',
+    x: '(w-text_w)/2',
+    y: 'h*0.25'
+  },
+  {
+    name: 'split_reality_bottom',
+    fontsize: 36,
+    kerning: 2,
+    shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.5',
+    x: '(w-text_w)/2',
+    y: 'h*0.65'
+  },
+  {
+    name: 'gaslight_flicker',
+    fontsize: 36,
+    kerning: 1,
+    shadow: 'shadowx=2:shadowy=2:shadowcolor=black@0.4',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2',
+    fontcolor_expr: "if(lt(rand(0),0.92),white,gray)"
+  },
+  {
+    name: 'submission_sink',
+    fontsize: 34,
+    kerning: 1,
+    shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.6',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2 + 50'
+  },
+  {
+    name: 'memory_echo',
+    fontsize: 36,
+    kerning: 2,
+    fontcolor: 'white@0.6',
+    shadow: 'shadowx=4:shadowy=4:shadowcolor=black@0.7',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2'
+  },
+  {
+    name: 'realization_snap',
+    fontsize: 40,
+    kerning: 3,
+    border: 'borderw=4:bordercolor=black@0.9',
+    x: '(w-text_w)/2',
+    y: '(h-text_h)/2'
+  }
+];
+
+function pickRandomStyle() {
+  return TEXT_STYLES[Math.floor(Math.random() * TEXT_STYLES.length)];
+}
+
 function wrapText(text, maxWidth) {
   const words = text.split(' ');
   let lines = [];
@@ -56,6 +146,10 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
   const tmp = '/tmp';
   const videoFile = path.join(tmp, 'input_video.mp4');
   const outputFile = path.join(tmp, fileName);
+
+  const selectedStyle = pickRandomStyle();
+  console.log('Selected text style:', selectedStyle.name);
+
   
   console.log('Downloading input video...', videoUrl);
   await download(videoUrl, videoFile);
@@ -75,11 +169,32 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
     const escapedFontPath = fontPath.replace(/\\/g, '/').replace(/:/g, '\\:');
     const escapedTextFile = textFile.replace(/\\/g, '/').replace(/:/g, '\\:');
 
-    const drawText =
-      `${inputLabel}drawtext=fontfile='${escapedFontPath}':` +
-      `textfile='${escapedTextFile}':` +
-      `fontcolor=white:fontsize=36:line_spacing=20:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,${overlay.start},${overlay.end})'` +
-      `${outputLabel}`;
+const style = selectedStyle;
+
+const drawTextOptions = [
+  `fontfile='${escapedFontPath}'`,
+  `textfile='${escapedTextFile}'`,
+  `fontsize=${style.fontsize}`,
+  `kerning=${style.kerning || 0}`,
+  `line_spacing=20`,
+  `x=${style.x}`,
+  `y=${style.y}`,
+  `enable='between(t,${overlay.start},${overlay.end})'`
+];
+
+if (style.fontcolor_expr) {
+  drawTextOptions.push(`fontcolor_expr=${style.fontcolor_expr}`);
+} else {
+  drawTextOptions.push(`fontcolor=${style.fontcolor || 'white'}`);
+}
+
+if (style.border) drawTextOptions.push(style.border);
+if (style.shadow) drawTextOptions.push(style.shadow);
+
+const drawText =
+  `${inputLabel}drawtext=${drawTextOptions.join(':')}${outputLabel}`;
+
+
 
     filterParts.push(drawText);
     lastLabel = outputLabel;
