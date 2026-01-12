@@ -7,18 +7,17 @@ import axios from 'axios';
 import { fileURLToPath } from 'url';
 
 // 1. Get the library-provided path for FFmpeg
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 2. Correct way to find the font path in ES Modules
-const fontPath = path.join(__dirname, 'node_modules/@fontsource/roboto/files/roboto-latin-700-normal.woff');
+const fontPath = path.join(__dirname, 'fonts/Roboto-Bold.ttf');
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ssm-renders-8822';
-const ffmpegPath = process.env.FFMPEG_PATH || ffmpegInstaller.path || ffmpegStatic;
+const ffmpegPath = ffmpegStatic;
 
 const TEXT_STYLES = [
   { name: 'quiet_center_reveal', fontsize: 36, kerning: 2, shadow: 'shadowx=2:shadowy=2:shadowcolor=black@0.4', x: '(w-text_w)/2', y: '(h-text_h)/2', fontcolor: 'white' },
@@ -38,6 +37,9 @@ function pickRandomStyle() {
 }
 
 function wrapText(text, maxWidth) {
+
+  if (!text || !text.trim()) return '';
+
   const words = text.split(' ');
   let lines = [];
   let currentLine = words[0];
@@ -61,6 +63,14 @@ async function download(url, dest) {
     writer.on('finish', resolve);
     writer.on('error', reject);
   });
+}
+
+function ffEscape(value) {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/:/g, '\\:')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '');
 }
 
 async function renderTextOverlay(fileName, videoUrl, overlays) {
@@ -87,19 +97,21 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
       const textFile = path.join(tmp, `text_${runId}_${index}.txt`);
       fs.writeFileSync(textFile, wrappedText, 'utf8');
 
-      const escapedFontPath = fontPath.replace(/\\/g, '/').replace(/:/g, '\\:');
-      const escapedTextFile = textFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+      const escapedFontPath = fontPath.replace(/\\/g, '/');
+      const escapedTextFile = textFile.replace(/\\/g, '/');
+
 
       const drawTextOptions = [
-        `fontfile='${escapedFontPath}'`,
-        `textfile='${escapedTextFile}'`,
-        `fontsize=${selectedStyle.fontsize}`,
-        `kerning=${selectedStyle.kerning || 0}`,
+        `fontfile='${ffEscape(escapedFontPath)}'`,
+        `textfile='${ffEscape(escapedTextFile)}'`,
+        `fontsize=${ffEscape(selectedStyle.fontsize)}`,
+        `kerning=${ffEscape(selectedStyle.kerning || 0)}`,
         `line_spacing=20`,
-        `x=${selectedStyle.x}`,
-        `y=${selectedStyle.y}`,
+        `x=${ffEscape(selectedStyle.x)}`,
+        `y=${ffEscape(selectedStyle.y)}`,
         `enable='between(t,${overlay.start},${overlay.end})'`
       ];
+
 
       if (selectedStyle.fontcolor_expr) {
         drawTextOptions.push(`fontcolor_expr=${selectedStyle.fontcolor_expr}`);
@@ -110,7 +122,14 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
       if (selectedStyle.border) drawTextOptions.push(selectedStyle.border);
       if (selectedStyle.shadow) drawTextOptions.push(selectedStyle.shadow);
 
-      filterParts.push(`${inputLabel}drawtext=${drawTextOptions.join(':')}${outputLabel}`);
+      const drawTextFilter =
+        `${inputLabel}drawtext=` +
+        drawTextOptions.join(':') +
+        `${outputLabel}`;
+      
+      filterParts.push(drawTextFilter);
+
+      
       lastLabel = outputLabel;
     });
 
@@ -118,6 +137,8 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
     const args = ['-i', videoFile, '-filter_complex', filterChain, '-map', lastLabel, '-map', '0:a?', '-c:v', 'libx264', '-c:a', 'copy', '-y', outputFile];
 
     console.log('Executing FFmpeg...');
+    console.log('FFmpeg filter_complex:', filterChain);
+
     execFileSync(ffmpegPath, args);
 
     console.log(`Uploading ${fileName}...`);
