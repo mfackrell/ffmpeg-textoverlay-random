@@ -25,6 +25,10 @@ const TEXT_STYLES = [
   { name: 'internal_shift_up', fontsize: 36, kerning: 2, shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.5', x: '(w-text_w)/2', y: '(h-text_h)/2 + 50' },
   { name: 'freeze_response', fontsize: 38, kerning: 1, shadow: 'shadowx=4:shadowy=4:shadowcolor=black@0.6', x: '(w-text_w)/2', y: '(h-text_h)/2' },
   { name: 'split_reality_top', fontsize: 34, kerning: 1, border: 'borderw=2:bordercolor=black@0.7', x: '(w-text_w)/2', y: 'h*0.25' },
+  { name: 'quiet_center_reveal1', fontsize: 38, kerning: 2, x: '(w-text_w)/2', y: '(h-text_h)/2' },
+  { name: 'lower_third_fact1', fontsize: 32, kerning: 1, x: '(w-text_w)/2', y: 'h*0.80' }, // Moved lower
+  { name: 'top_header_style1', fontsize: 34, kerning: 1, x: '(w-text_w)/2', y: 'h*0.15' }, // Distinct Top position
+  { name: 'realization_snap1', fontsize: 48, kerning: 4, x: '(w-text_w)/2', y: '(h-text_h)/2' },
   { name: 'split_reality_bottom', fontsize: 36, kerning: 2, shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.5', x: '(w-text_w)/2', y: 'h*0.65' },
   { name: 'gaslight_flicker', fontsize: 36, kerning: 1, shadow: 'shadowx=2:shadowy=2:shadowcolor=black@0.4', x: '(w-text_w)/2', y: '(h-text_h)/2', fontcolor_expr: "if(lt(rand(0),0.92),white,gray)" },
   { name: 'submission_sink', fontsize: 34, kerning: 1, shadow: 'shadowx=3:shadowy=3:shadowcolor=black@0.6', x: '(w-text_w)/2', y: '(h-text_h)/2 + 50' },
@@ -76,6 +80,13 @@ function ffEscape(value) {
 async function renderTextOverlay(fileName, videoUrl, overlays) {
   const tmp = '/tmp';
   const runId = Date.now(); 
+
+  // Verify font exists before doing any heavy lifting
+  if (!fs.existsSync(fontPath)) {
+    console.error(`FATAL: Font file missing at ${fontPath}`);
+    throw new Error(`Font not found: ${fontPath}`);
+  }
+  
   const videoFile = path.join(tmp, `input_video_${runId}.mp4`);
   const outputFile = path.join(tmp, fileName);
   
@@ -102,7 +113,7 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
 
 
       const drawTextOptions = [
-        `fontfile='${ffEscape(escapedFontPath)}'`,
+        `fontfile=${escapedFontPath}`,
         `textfile='${ffEscape(escapedTextFile)}'`,
         `fontsize=${ffEscape(selectedStyle.fontsize)}`,
         `kerning=${ffEscape(selectedStyle.kerning || 0)}`,
