@@ -101,6 +101,13 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
     console.log('Downloading audio...', audioUrl);
     await download(audioUrl, audioFile);
 
+    const audioFile = path.join(tmp, `audio_${runId}.mp3`);
+    console.log('Downloading audio...', body.audio);
+    await download(body.audio, audioFile);
+    
+    const audioStats = fs.statSync(audioFile);
+    console.log('AUDIO FILE SIZE:', audioStats.size);
+
     
     const filterParts = [];
     let lastLabel = '[0:v]';
@@ -151,17 +158,18 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
 
     const filterChain = filterParts.join(';');
     const args = [
-    '-i', videoFile,
-    '-i', audioFile,
-    '-filter_complex', filterChain,
-    '-map', lastLabel,
-    '-map', '1:a:0',
-    '-shortest',
-    '-c:v', 'libx264',
-    '-c:a', 'aac',
-    '-y',
-    outputFile
-  ];
+      '-i', videoFile,
+      '-i', audioFile,
+      '-filter_complex', `${filterChain};[1:a]anull[aout]`,
+      '-map', lastLabel,
+      '-map', '[aout]',
+      '-shortest',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-y',
+      outputFile
+    ];
+
 
     console.log('Executing FFmpeg...');
     console.log('FFmpeg filter_complex:', filterChain);
