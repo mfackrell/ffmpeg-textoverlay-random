@@ -77,7 +77,7 @@ function ffEscape(value) {
     .replace(/\n/g, '');
 }
 
-async function renderTextOverlay(fileName, videoUrl, overlays) {
+async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
   const tmp = '/tmp';
   const runId = Date.now(); 
 
@@ -88,6 +88,7 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
   }
   
   const videoFile = path.join(tmp, `input_video_${runId}.mp4`);
+  const audioFile = path.join(tmp, `input_audio_${runId}.mp3`);
   const outputFile = path.join(tmp, fileName);
   
   const selectedStyle = pickRandomStyle();
@@ -97,6 +98,10 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
     console.log('Downloading input video...', videoUrl);
     await download(videoUrl, videoFile);
 
+    console.log('Downloading audio...', audioUrl);
+    await download(audioUrl, audioFile);
+
+    
     const filterParts = [];
     let lastLabel = '[0:v]';
 
@@ -145,7 +150,18 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
     });
 
     const filterChain = filterParts.join(';');
-    const args = ['-i', videoFile, '-filter_complex', filterChain, '-map', lastLabel, '-map', '0:a?', '-c:v', 'libx264', '-c:a', 'copy', '-y', outputFile];
+    const args = [
+    '-i', videoFile,
+    '-i', audioFile,
+    '-filter_complex', filterChain,
+    '-map', lastLabel,
+    '-map', '1:a:0',
+    '-shortest',
+    '-c:v', 'libx264',
+    '-c:a', 'aac',
+    '-y',
+    outputFile
+  ];
 
     console.log('Executing FFmpeg...');
     console.log('FFmpeg filter_complex:', filterChain);
@@ -168,14 +184,20 @@ async function renderTextOverlay(fileName, videoUrl, overlays) {
 
 functions.http('ffmpegTextOverlay', async (req, res) => {
   const body = req.body;
-  if (!body.videoUrl || !body.overlays || !Array.isArray(body.overlays)) {
+  if (!body.videoUrl || !body.audio || !body.overlays || !Array.isArray(body.overlays)) {
     return res.status(400).json({ error: 'Payload must include videoUrl and overlays array.' });
   }
 
   const fileName = `overlay_${Date.now()}.mp4`;
 
   try {
-    const url = await renderTextOverlay(fileName, body.videoUrl, body.overlays);
+  const url = await renderTextOverlay(
+    fileName,
+    body.videoUrl,
+    body.audio,
+    body.overlays
+  );
+
     res.status(200).json({ status: 'completed', url });
   } catch (err) {
     console.error('Render failed:', err);
