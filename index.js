@@ -100,10 +100,9 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
 
     console.log('Downloading audio...', audioUrl);
     await download(audioUrl, audioFile);
-
-    const audioFile = path.join(tmp, `audio_${runId}.mp3`);
-    console.log('Downloading audio...', body.audio);
-    await download(body.audio, audioFile);
+    
+    const audioStats = fs.statSync(audioFile);
+    console.log('AUDIO FILE SIZE:', audioStats.size);
     
     const audioStats = fs.statSync(audioFile);
     console.log('AUDIO FILE SIZE:', audioStats.size);
@@ -182,7 +181,7 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
     return `https://storage.googleapis.com/${BUCKET_NAME}/${fileName}`;
 
   } finally {
-    [videoFile, outputFile].forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
+    [videoFile, audioFile, outputFile].forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
     overlays.forEach((_, i) => {
       const t = path.join(tmp, `text_${runId}_${i}.txt`);
       if (fs.existsSync(t)) fs.unlinkSync(t);
@@ -192,19 +191,20 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
 
 functions.http('ffmpegTextOverlay', async (req, res) => {
   const body = req.body;
-  if (!body.videoUrl || !body.audio || !body.overlays || !Array.isArray(body.overlays)) {
-    return res.status(400).json({ error: 'Payload must include videoUrl and overlays array.' });
+  // Change body.audio to body.audioUrl here
+  if (!body.videoUrl || !body.audioUrl || !body.overlays || !Array.isArray(body.overlays)) {
+    return res.status(400).json({ error: 'Payload must include videoUrl, audioUrl, and overlays array.' });
   }
 
   const fileName = `overlay_${Date.now()}.mp4`;
 
   try {
-  const url = await renderTextOverlay(
-    fileName,
-    body.videoUrl,
-    body.audio,
-    body.overlays
-  );
+    const url = await renderTextOverlay(
+      fileName,
+      body.videoUrl,
+      body.audioUrl, // Pass audioUrl
+      body.overlays
+    );
 
     res.status(200).json({ status: 'completed', url });
   } catch (err) {
