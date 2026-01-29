@@ -104,10 +104,6 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
     const audioStats = fs.statSync(audioFile);
     console.log('AUDIO FILE SIZE:', audioStats.size);
     
-    const audioStats = fs.statSync(audioFile);
-    console.log('AUDIO FILE SIZE:', audioStats.size);
-
-    
     const filterParts = [];
     let lastLabel = '[0:v]';
 
