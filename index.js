@@ -13,7 +13,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 2. Correct way to find the font path in ES Modules
-const fontPath = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ssm-renders-8822';
@@ -81,11 +80,6 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
   const tmp = '/tmp';
   const runId = Date.now(); 
 
-  // Verify font exists before doing any heavy lifting
-  if (!fs.existsSync(fontPath)) {
-    console.error(`FATAL: Font file missing at ${fontPath}`);
-    throw new Error(`Font not found: ${fontPath}`);
-  }
   
   const videoFile = path.join(tmp, `input_video_${runId}.mp4`);
   const audioFile = path.join(tmp, `input_audio_${runId}.mp3`);
@@ -115,7 +109,6 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
       const textFile = path.join(tmp, `text_${runId}_${index}.txt`);
       fs.writeFileSync(textFile, wrappedText, 'utf8');
 
-      const escapedFontPath = fontPath.replace(/\\/g, '/');
       const escapedTextFile = textFile.replace(/\\/g, '/');
 
 
