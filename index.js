@@ -120,7 +120,6 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
 
 
       const drawTextOptions = [
-        `fontfile=${escapedFontPath}`,
         `textfile='${ffEscape(escapedTextFile)}'`,
         `fontsize=${ffEscape(selectedStyle.fontsize)}`,
         `kerning=${ffEscape(selectedStyle.kerning || 0)}`,
