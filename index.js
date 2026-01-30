@@ -154,13 +154,16 @@ async function renderTextOverlay(fileName, videoUrl, audioUrl, overlays) {
     const filterChain = filterParts.join(';');
     const args = [
       '-i', videoFile,
+      '-stream_loop', '-1',
       '-i', audioFile,
-      '-filter_complex', `${filterChain};[1:a]anull[aout]`,
+      '-filter_complex', filterChain,
       '-map', lastLabel,
-      '-map', '[aout]',
-      '-shortest',
+      '-map', '1:a:0',
+      '-af', 'aresample=async=1:first_pts=0',
       '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
+      '-shortest',
       '-y',
       outputFile
     ];
