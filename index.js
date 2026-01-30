@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 2. Correct way to find the font path in ES Modules
-const fontPath = path.join(__dirname, 'fonts/Roboto-Bold.ttf');
+const fontPath = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'ssm-renders-8822';
